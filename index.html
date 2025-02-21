@@ -195,28 +195,39 @@
         let currentEditId = null;
 
         // Load data from JSON file
-        async function loadTodos() {
-            try {
-                const response = await fetch('data.json');
-                const data = await response.json();
-                todos = data.todos;
-                renderTodos();
-            } catch (error) {
-                console.error('Error loading todos:', error);
-            }
+        // Ganti fungsi loadTodos dengan ini:
+async function loadTodos() {
+    try {
+        // Cek apakah ada data di localStorage
+        const savedTodos = localStorage.getItem('bap_todos');
+        if (savedTodos) {
+            todos = JSON.parse(savedTodos);
+        } else {
+            // Jika tidak ada di localStorage, ambil dari data.json
+            const response = await fetch('data.json');
+            const data = await response.json();
+            todos = data.todos;
+            // Simpan ke localStorage
+            localStorage.setItem('bap_todos', JSON.stringify(todos));
         }
+        renderTodos();
+    } catch (error) {
+        console.error('Error loading todos:', error);
+        // Jika gagal load, gunakan array kosong
+        todos = [];
+        renderTodos();
+    }
+}
 
-        // Save data to JSON file (in real implementation, this would be an API call)
-        async function saveTodos() {
-            try {
-                // In a real implementation, this would be a POST request to your backend
-                console.log('Saving todos:', { todos });
-                // For demo purposes, we'll just update the UI
-                renderTodos();
-            } catch (error) {
-                console.error('Error saving todos:', error);
-            }
-        }
+// Ganti fungsi saveTodos dengan ini:
+function saveTodos() {
+    try {
+        localStorage.setItem('bap_todos', JSON.stringify(todos));
+        renderTodos();
+    } catch (error) {
+        console.error('Error saving todos:', error);
+    }
+}
 
         function updateProgress() {
             const totalItems = todos.length;
