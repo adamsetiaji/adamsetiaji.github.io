@@ -68,26 +68,6 @@
             background-color: #2ea44f;
             transition: width 0.3s ease;
         }
-        .action-buttons {
-            margin-left: 10px;
-            display: flex;
-            gap: 5px;
-        }
-        .btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .btn-edit {
-            background-color: #0969da;
-            color: white;
-        }
-        .btn-delete {
-            background-color: #cf222e;
-            color: white;
-        }
         .add-form {
             margin-bottom: 20px;
             padding: 15px;
@@ -107,35 +87,35 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
         .btn-add {
             background-color: #2ea44f;
             color: white;
             padding: 10px 20px;
         }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
+        .btn-edit {
+            background-color: #0969da;
+            color: white;
+            font-size: 12px;
         }
-        .modal-content {
-            position: relative;
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 8px;
+        .btn-delete {
+            background-color: #cf222e;
+            color: white;
+            font-size: 12px;
         }
-        .close {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            font-size: 20px;
-            cursor: pointer;
+        .btn-reset {
+            background-color: #6e7781;
+            color: white;
+        }
+        .action-buttons {
+            margin-left: 10px;
+            display: flex;
+            gap: 5px;
         }
     </style>
 </head>
@@ -160,6 +140,10 @@
             <button class="btn btn-add" onclick="addTodo()">Tambah BAP</button>
         </div>
 
+        <div style="text-align: right; margin-bottom: 10px;">
+            <button class="btn btn-reset" onclick="resetData()">Reset Data</button>
+        </div>
+
         <div class="progress-bar">
             <div class="progress" id="progress"></div>
         </div>
@@ -169,65 +153,37 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Edit BAP</h2>
-            <div class="form-group">
-                <label for="editId">Nomor BAP:</label>
-                <input type="text" id="editId">
-            </div>
-            <div class="form-group">
-                <label for="editDate">Tanggal:</label>
-                <input type="text" id="editDate">
-            </div>
-            <div class="form-group">
-                <label for="editType">Tipe File:</label>
-                <input type="text" id="editType">
-            </div>
-            <button class="btn btn-add" onclick="saveEdit()">Simpan</button>
-        </div>
-    </div>
-
     <script>
         let todos = [];
-        let currentEditId = null;
 
-        // Load data from JSON file
-        // Ganti fungsi loadTodos dengan ini:
-async function loadTodos() {
-    try {
-        // Cek apakah ada data di localStorage
-        const savedTodos = localStorage.getItem('bap_todos');
-        if (savedTodos) {
-            todos = JSON.parse(savedTodos);
-        } else {
-            // Jika tidak ada di localStorage, ambil dari data.json
-            const response = await fetch('data.json');
-            const data = await response.json();
-            todos = data.todos;
-            // Simpan ke localStorage
-            localStorage.setItem('bap_todos', JSON.stringify(todos));
+        async function loadTodos() {
+            try {
+                const savedTodos = localStorage.getItem('bap_todos');
+                if (savedTodos) {
+                    todos = JSON.parse(savedTodos);
+                    renderTodos();
+                } else {
+                    const response = await fetch('data.json');
+                    const data = await response.json();
+                    todos = data.todos;
+                    localStorage.setItem('bap_todos', JSON.stringify(todos));
+                    renderTodos();
+                }
+            } catch (error) {
+                console.error('Error loading todos:', error);
+                todos = [];
+                renderTodos();
+            }
         }
-        renderTodos();
-    } catch (error) {
-        console.error('Error loading todos:', error);
-        // Jika gagal load, gunakan array kosong
-        todos = [];
-        renderTodos();
-    }
-}
 
-// Ganti fungsi saveTodos dengan ini:
-function saveTodos() {
-    try {
-        localStorage.setItem('bap_todos', JSON.stringify(todos));
-        renderTodos();
-    } catch (error) {
-        console.error('Error saving todos:', error);
-    }
-}
+        function saveTodos() {
+            try {
+                localStorage.setItem('bap_todos', JSON.stringify(todos));
+                renderTodos();
+            } catch (error) {
+                console.error('Error saving todos:', error);
+            }
+        }
 
         function updateProgress() {
             const totalItems = todos.length;
@@ -249,7 +205,6 @@ function saveTodos() {
                             ${todo.done ? 'SUDAH' : 'BELUM'}
                         </span>
                         <div class="action-buttons">
-                            <button class="btn btn-edit" onclick="editTodo('${todo.id}')">Edit</button>
                             <button class="btn btn-delete" onclick="deleteTodo('${todo.id}')">Hapus</button>
                         </div>
                     </div>
@@ -297,29 +252,6 @@ function saveTodos() {
             saveTodos();
         }
 
-        function editTodo(id) {
-            const todo = todos.find(t => t.id === id);
-            if (!todo) return;
-
-            currentEditId = id;
-            $('#editId').val(todo.id);
-            $('#editDate').val(todo.date);
-            $('#editType').val(todo.type);
-            $('#editModal').css('display', 'block');
-        }
-
-        function saveEdit() {
-            const todo = todos.find(t => t.id === currentEditId);
-            if (!todo) return;
-
-            todo.id = $('#editId').val();
-            todo.date = $('#editDate').val();
-            todo.type = $('#editType').val();
-
-            $('#editModal').css('display', 'none');
-            saveTodos();
-        }
-
         function deleteTodo(id) {
             if (confirm('Apakah Anda yakin ingin menghapus BAP ini?')) {
                 todos = todos.filter(todo => todo.id !== id);
@@ -327,17 +259,12 @@ function saveTodos() {
             }
         }
 
-        // Modal close button
-        $('.close').click(function() {
-            $('#editModal').css('display', 'none');
-        });
-
-        // Close modal when clicking outside
-        $(window).click(function(event) {
-            if ($(event.target).is('#editModal')) {
-                $('#editModal').css('display', 'none');
+        async function resetData() {
+            if (confirm('Apakah Anda yakin ingin mereset data ke default?')) {
+                localStorage.removeItem('bap_todos');
+                await loadTodos(); // Reload data from JSON
             }
-        });
+        }
 
         // Initial load
         $(document).ready(function() {
