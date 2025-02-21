@@ -194,35 +194,16 @@
 
         async function loadTodos() {
             try {
-                const savedTodos = localStorage.getItem('bap_todos');
-                if (savedTodos) {
-                    todos = JSON.parse(savedTodos);
-                    const savedTitle = localStorage.getItem('bap_title') || 'Daftar BAP';
-                    document.querySelector('h1').textContent = savedTitle;
-                    renderTodos();
-                } else {
-                    const response = await fetch('data.json');
-                    const data = await response.json();
-                    todos = data.todos;
-                    document.querySelector('h1').textContent = data.title;
-                    localStorage.setItem('bap_todos', JSON.stringify(todos));
-                    localStorage.setItem('bap_title', data.title);
-                    renderTodos();
-                }
+                const response = await fetch('data.json');
+                const data = await response.json();
+                todos = data.todos;
+                document.querySelector('h1').textContent = data.title;
+                renderTodos();
             } catch (error) {
                 console.error('Error loading todos:', error);
                 document.querySelector('h1').textContent = 'Daftar BAP';
                 todos = [];
                 renderTodos();
-            }
-        }
-
-        function saveTodos() {
-            try {
-                localStorage.setItem('bap_todos', JSON.stringify(todos));
-                renderTodos();
-            } catch (error) {
-                console.error('Error saving todos:', error);
             }
         }
 
@@ -271,14 +252,7 @@
 
                 todoItem.find('input[type="checkbox"]').change(function() {
                     todo.done = this.checked;
-                    todoItem.toggleClass('completed', this.checked);
-                    todoItem.find('.status')
-                        .toggleClass('status-done', this.checked)
-                        .toggleClass('status-pending', !this.checked)
-                        .text(this.checked ? 'SUDAH' : 'BELUM');
-                    updateProgress();
-                    updateStats();
-                    saveTodos();
+                    renderTodos();
                 });
 
                 todoList.append(todoItem);
@@ -316,21 +290,19 @@
             $('#newDate').val('');
             $('#newType').val('');
 
-            saveTodos();
+            renderTodos();
         }
 
         function deleteTodo(id) {
             if (confirm('Apakah Anda yakin ingin menghapus BAP ini?')) {
                 todos = todos.filter(todo => todo.id !== id);
-                saveTodos();
+                renderTodos();
             }
         }
 
-        async function resetData() {
-            if (confirm('Apakah Anda yakin ingin mereset data ke default?')) {
-                localStorage.removeItem('bap_todos');
-                localStorage.removeItem('bap_title');
-                await loadTodos();
+        function resetData() {
+            if (confirm('Apakah Anda yakin ingin mereset data?')) {
+                loadTodos();
             }
         }
 
@@ -340,11 +312,7 @@
                 dateFormat: 'dd-mm-yy',
                 changeMonth: true,
                 changeYear: true,
-                yearRange: '2024:2026',
-                dayNames: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
-                dayNamesMin: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-                monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
+                yearRange: '2024:2026'
             });
 
             loadTodos();
