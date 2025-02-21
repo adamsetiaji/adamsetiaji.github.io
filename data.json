@@ -1,0 +1,6 @@
+{
+  "todos": [
+    {"id": "000023", "date": "02-01-2025", "type": "jpeg", "done": true},
+    {"id": "000064", "date": "03-01-2025", "type": "pdf", "done": false},
+  ]
+}
