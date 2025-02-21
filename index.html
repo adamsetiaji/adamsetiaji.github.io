@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BAP Todo List</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,6 +24,7 @@
         h1 {
             color: #333;
             text-align: center;
+            margin-bottom: 30px;
         }
         .todo-item {
             display: flex;
@@ -81,11 +84,12 @@
             display: block;
             margin-bottom: 5px;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            background-color: white;
         }
         .btn {
             padding: 5px 10px;
@@ -97,11 +101,6 @@
             background-color: #2ea44f;
             color: white;
             padding: 10px 20px;
-        }
-        .btn-edit {
-            background-color: #0969da;
-            color: white;
-            font-size: 12px;
         }
         .btn-delete {
             background-color: #cf222e;
@@ -117,11 +116,40 @@
             display: flex;
             gap: 5px;
         }
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .ui-datepicker {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .ui-datepicker-header {
+            background-color: #f6f8fa;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .ui-datepicker-calendar td {
+            padding: 2px;
+        }
+        .ui-datepicker-calendar a {
+            text-decoration: none;
+            padding: 5px;
+            display: block;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .ui-datepicker-calendar a:hover {
+            background-color: #e7f7ed;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Daftar BAP Januari 2025</h1>
+        <h1>Loading...</h1>
         
         <div class="add-form">
             <h3>Tambah BAP Baru</h3>
@@ -131,11 +159,17 @@
             </div>
             <div class="form-group">
                 <label for="newDate">Tanggal:</label>
-                <input type="text" id="newDate" placeholder="DD-MM-YYYY">
+                <input type="text" id="newDate" class="datepicker" placeholder="DD-MM-YYYY" readonly>
             </div>
             <div class="form-group">
                 <label for="newType">Tipe File:</label>
-                <input type="text" id="newType" placeholder="pdf/jpeg">
+                <select id="newType">
+                    <option value="">Pilih tipe file</option>
+                    <option value="pdf">PDF</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="png">PNG</option>
+                </select>
             </div>
             <button class="btn btn-add" onclick="addTodo()">Tambah BAP</button>
         </div>
@@ -143,6 +177,8 @@
         <div style="text-align: right; margin-bottom: 10px;">
             <button class="btn btn-reset" onclick="resetData()">Reset Data</button>
         </div>
+
+        <div class="stats" id="stats"></div>
 
         <div class="progress-bar">
             <div class="progress" id="progress"></div>
@@ -161,16 +197,21 @@
                 const savedTodos = localStorage.getItem('bap_todos');
                 if (savedTodos) {
                     todos = JSON.parse(savedTodos);
+                    const savedTitle = localStorage.getItem('bap_title') || 'Daftar BAP';
+                    document.querySelector('h1').textContent = savedTitle;
                     renderTodos();
                 } else {
                     const response = await fetch('data.json');
                     const data = await response.json();
                     todos = data.todos;
+                    document.querySelector('h1').textContent = data.title;
                     localStorage.setItem('bap_todos', JSON.stringify(todos));
+                    localStorage.setItem('bap_title', data.title);
                     renderTodos();
                 }
             } catch (error) {
                 console.error('Error loading todos:', error);
+                document.querySelector('h1').textContent = 'Daftar BAP';
                 todos = [];
                 renderTodos();
             }
@@ -185,6 +226,17 @@
             }
         }
 
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(todo => todo.done).length;
+            const pending = total - completed;
+            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+            document.getElementById('stats').innerHTML = `
+                Total: ${total} | Selesai: ${completed} | Belum: ${pending} | Progress: ${percent}%
+            `;
+        }
+
         function updateProgress() {
             const totalItems = todos.length;
             const completedItems = todos.filter(todo => todo.done).length;
@@ -195,6 +247,13 @@
         function renderTodos() {
             const todoList = $('#todo-list');
             todoList.empty();
+
+            // Sort todos by date
+            todos.sort((a, b) => {
+                let [dayA, monthA, yearA] = a.date.split('-');
+                let [dayB, monthB, yearB] = b.date.split('-');
+                return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+            });
 
             todos.forEach(todo => {
                 const todoItem = $(`
@@ -218,6 +277,7 @@
                         .toggleClass('status-pending', !this.checked)
                         .text(this.checked ? 'SUDAH' : 'BELUM');
                     updateProgress();
+                    updateStats();
                     saveTodos();
                 });
 
@@ -225,6 +285,7 @@
             });
 
             updateProgress();
+            updateStats();
         }
 
         function addTodo() {
@@ -234,6 +295,12 @@
 
             if (!id || !date || !type) {
                 alert('Semua field harus diisi!');
+                return;
+            }
+
+            // Check if ID already exists
+            if (todos.some(todo => todo.id === id)) {
+                alert('Nomor BAP sudah ada!');
                 return;
             }
 
@@ -262,12 +329,24 @@
         async function resetData() {
             if (confirm('Apakah Anda yakin ingin mereset data ke default?')) {
                 localStorage.removeItem('bap_todos');
-                await loadTodos(); // Reload data from JSON
+                localStorage.removeItem('bap_title');
+                await loadTodos();
             }
         }
 
-        // Initial load
+        // Initialize datepicker
         $(document).ready(function() {
+            $("#newDate").datepicker({
+                dateFormat: 'dd-mm-yy',
+                changeMonth: true,
+                changeYear: true,
+                yearRange: '2024:2026',
+                dayNames: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+                dayNamesMin: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+                monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
+            });
+
             loadTodos();
         });
     </script>
