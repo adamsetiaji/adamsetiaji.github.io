@@ -2,7 +2,7 @@
   "title": "Daftar BAP",
   "todos": [
     {"id": "000023", "date": "02-01-2025", "type": "jpeg", "done": true},
-    {"id": "000064", "date": "03-01-2025", "type": "pdf", "done": false},
+    {"id": "000064", "date": "03-01-2025", "type": "pdf", "done": true},
     {"id": "000065", "date": "03-01-2025", "type": "pdf", "done": false},
     {"id": "000123", "date": "06-01-2025", "type": "pdf", "done": false},
     {"id": "000158", "date": "07-01-2025", "type": "pdf", "done": false},
