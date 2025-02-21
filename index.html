@@ -1,9 +1,337 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CasaOS Interface</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAP Todo List</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .todo-item:hover {
+            background-color: #f9f9f9;
+        }
+        .todo-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+        .todo-item.completed {
+            color: #888;
+            text-decoration: line-through;
+        }
+        .status {
+            margin-left: auto;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-done {
+            background-color: #e7f7ed;
+            color: #1a7f37;
+        }
+        .status-pending {
+            background-color: #fff8c5;
+            color: #9a6700;
+        }
+        .progress-bar {
+            margin: 20px 0;
+            background-color: #eee;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ea44f;
+            transition: width 0.3s ease;
+        }
+        .action-buttons {
+            margin-left: 10px;
+            display: flex;
+            gap: 5px;
+        }
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-edit {
+            background-color: #0969da;
+            color: white;
+        }
+        .btn-delete {
+            background-color: #cf222e;
+            color: white;
+        }
+        .add-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-add {
+            background-color: #2ea44f;
+            color: white;
+            padding: 10px 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to CasaOS</h1>
+    <div class="container">
+        <h1>Daftar BAP Januari 2025</h1>
+        
+        <div class="add-form">
+            <h3>Tambah BAP Baru</h3>
+            <div class="form-group">
+                <label for="newId">Nomor BAP:</label>
+                <input type="text" id="newId" placeholder="000xxx">
+            </div>
+            <div class="form-group">
+                <label for="newDate">Tanggal:</label>
+                <input type="text" id="newDate" placeholder="DD-MM-YYYY">
+            </div>
+            <div class="form-group">
+                <label for="newType">Tipe File:</label>
+                <input type="text" id="newType" placeholder="pdf/jpeg">
+            </div>
+            <button class="btn btn-add" onclick="addTodo()">Tambah BAP</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+
+        <div id="todo-list">
+            <!-- Todo items will be populated here -->
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit BAP</h2>
+            <div class="form-group">
+                <label for="editId">Nomor BAP:</label>
+                <input type="text" id="editId">
+            </div>
+            <div class="form-group">
+                <label for="editDate">Tanggal:</label>
+                <input type="text" id="editDate">
+            </div>
+            <div class="form-group">
+                <label for="editType">Tipe File:</label>
+                <input type="text" id="editType">
+            </div>
+            <button class="btn btn-add" onclick="saveEdit()">Simpan</button>
+        </div>
+    </div>
+
+    <script>
+        let todos = [];
+        let currentEditId = null;
+
+        // Load data from JSON file
+        async function loadTodos() {
+            try {
+                const response = await fetch('data.json');
+                const data = await response.json();
+                todos = data.todos;
+                renderTodos();
+            } catch (error) {
+                console.error('Error loading todos:', error);
+            }
+        }
+
+        // Save data to JSON file (in real implementation, this would be an API call)
+        async function saveTodos() {
+            try {
+                // In a real implementation, this would be a POST request to your backend
+                console.log('Saving todos:', { todos });
+                // For demo purposes, we'll just update the UI
+                renderTodos();
+            } catch (error) {
+                console.error('Error saving todos:', error);
+            }
+        }
+
+        function updateProgress() {
+            const totalItems = todos.length;
+            const completedItems = todos.filter(todo => todo.done).length;
+            const progressPercent = (totalItems === 0 ? 0 : (completedItems / totalItems) * 100);
+            $('#progress').css('width', progressPercent + '%');
+        }
+
+        function renderTodos() {
+            const todoList = $('#todo-list');
+            todoList.empty();
+
+            todos.forEach(todo => {
+                const todoItem = $(`
+                    <div class="todo-item ${todo.done ? 'completed' : ''}" data-id="${todo.id}">
+                        <input type="checkbox" ${todo.done ? 'checked' : ''}>
+                        <span>BAP-${todo.id} (${todo.date}).${todo.type}</span>
+                        <span class="status ${todo.done ? 'status-done' : 'status-pending'}">
+                            ${todo.done ? 'SUDAH' : 'BELUM'}
+                        </span>
+                        <div class="action-buttons">
+                            <button class="btn btn-edit" onclick="editTodo('${todo.id}')">Edit</button>
+                            <button class="btn btn-delete" onclick="deleteTodo('${todo.id}')">Hapus</button>
+                        </div>
+                    </div>
+                `);
+
+                todoItem.find('input[type="checkbox"]').change(function() {
+                    todo.done = this.checked;
+                    todoItem.toggleClass('completed', this.checked);
+                    todoItem.find('.status')
+                        .toggleClass('status-done', this.checked)
+                        .toggleClass('status-pending', !this.checked)
+                        .text(this.checked ? 'SUDAH' : 'BELUM');
+                    updateProgress();
+                    saveTodos();
+                });
+
+                todoList.append(todoItem);
+            });
+
+            updateProgress();
+        }
+
+        function addTodo() {
+            const id = $('#newId').val();
+            const date = $('#newDate').val();
+            const type = $('#newType').val();
+
+            if (!id || !date || !type) {
+                alert('Semua field harus diisi!');
+                return;
+            }
+
+            todos.push({
+                id,
+                date,
+                type,
+                done: false
+            });
+
+            // Clear form
+            $('#newId').val('');
+            $('#newDate').val('');
+            $('#newType').val('');
+
+            saveTodos();
+        }
+
+        function editTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
+            currentEditId = id;
+            $('#editId').val(todo.id);
+            $('#editDate').val(todo.date);
+            $('#editType').val(todo.type);
+            $('#editModal').css('display', 'block');
+        }
+
+        function saveEdit() {
+            const todo = todos.find(t => t.id === currentEditId);
+            if (!todo) return;
+
+            todo.id = $('#editId').val();
+            todo.date = $('#editDate').val();
+            todo.type = $('#editType').val();
+
+            $('#editModal').css('display', 'none');
+            saveTodos();
+        }
+
+        function deleteTodo(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus BAP ini?')) {
+                todos = todos.filter(todo => todo.id !== id);
+                saveTodos();
+            }
+        }
+
+        // Modal close button
+        $('.close').click(function() {
+            $('#editModal').css('display', 'none');
+        });
+
+        // Close modal when clicking outside
+        $(window).click(function(event) {
+            if ($(event.target).is('#editModal')) {
+                $('#editModal').css('display', 'none');
+            }
+        });
+
+        // Initial load
+        $(document).ready(function() {
+            loadTodos();
+        });
+    </script>
 </body>
 </html>
